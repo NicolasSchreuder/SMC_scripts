@@ -1,0 +1,18 @@
+{
+    "contents" : "/////////////\n// References\n/////////////\n\n// Armadillo doc :\n// http://arma.sourceforge.net/docs.html#stats_fns\n// https://zenglix.github.io/Rcpp_basic/\n\n// Inverse matrix with boost :\n// https://savingyoutime.wordpress.com/2009/09/21/c-matrix-inversion-boostublas/\n\n// include QMC\n// https://stackoverflow.com/questions/13995266/using-3rd-party-header-files-with-rcpp\n\n// Include external headers RCPP\n// https://stackoverflow.com/questions/22856592/how-to-include-and-link-with-sourcecpp-in-r-rcpp\nhttps://stackoverflow.com/questions/13995266/using-3rd-party-header-files-with-rcpp\nBest solution : build a package ?\nhttps://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-package.pdf (build package with RCPP)\n\nBuild R package\nhttp://web.mit.edu/insong/www/pdf/rpackage_instructions.pdf\n\nChopin présente SQMC : http://videos.birs.ca/2014/14w5125/201403061124-Chopin.mp4\n\nBuild + install package :\ncd \"/Users/Schreuder/Google Drive/ENSAE/2A/Stage2A/bRistol\"\nsh RSQMC_build_install.sh\n\nTo update new functions in package :\nlibrary(Rcpp)\nsetwd(\"/Users/Schreuder/Google Drive/ENSAE/2A/Stage2A/bRistol/RSQMC\")\ncompileAttributes()\n\nTo read :\nhttps://statisfaction.wordpress.com/2017/06/30/particle-methods-in-statistics/#more-5072\n\nQuestion pour Mathieu :\n- questions sur l'algo IBIS\n- quelle métrique utiliser pour comparer la variance de SMC et SQMC\n-\n",
+    "created" : 1499937693627.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1828536729",
+    "id" : "B8FAD0B1",
+    "lastKnownWriteTime" : 1501862809,
+    "path" : "~/Google Drive/ENSAE/2A/Stage2A/bRistol/References",
+    "project_path" : "References",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "type" : "text"
+}

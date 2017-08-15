@@ -1,30 +1,18 @@
-library(mvtnorm)
 library(RSQMC)
-source("/Users/Schreuder/Google Drive/ENSAE/2A/Stage2A/bRistol/Example1Functions.R") 
+library(mvtnorm)
+source("/Users/Schreuder/Google Drive/ENSAE/2A/Stage2A/RSQMC_scripts/Lattice_Model_Functions.R") 
 
 set.seed(42)
 
-#lattice_internal_filter(N, M, D, mu + rho*(particles[, , 1] - mu) , S, y[, 2])
-
 # SMC parameters
-D <- 2 # dimension -> DxD square
-N <- 300 # number of external particles
-M <- 32 # number of internal particles
-T_ = 40 # time
-pred_horizon = 1
+D <- 8 # dimension -> DxD square
+N <- 100 # number of external particles
+M <- 16 # number of internal particles
+T_ = 30 # time
 
 # AR(1) parameter
-mu = 3
+mu = 2
 rho = 0.9
-
-# Multivariate density of independant Poisson variables
-g <- function(y, x){
-  prod <- 1
-  for(i in 1:length(y)){
-    prod <- prod * dpois(y[i], exp(x[i]))
-  }
-  return(prod)
-}
 
 # Covariance matrix design
 S_inv <- matrix(0, D**2, D**2)
@@ -59,7 +47,7 @@ for(n in 1:D){
 S <- solve(S_inv) # covariance matrix
 
 # Calibration 
-S <- 0.5*S
+#S <- 0.5*S
 
 # Trajectory simulation
 x <- matrix(0, D**2, T_)
@@ -77,51 +65,25 @@ for(t in 2:T_){
   }
 }
 
-particles <- array(0, dim=c(N, D**2, T_))
-resampling_weights <- array(0, N)
+#### NSMC without QMC
+particles <- lattice_filter(y, N, M, D, T_, mu, rho, S)
 
-for(n in 1:N){
-  particles[n, , 1] <- mvrnorm(n = 1, matrix(mu, D**2), S)
-  resampling_weights[n] <- g(y[, 1], particles[n, , 1])
-}
-
-resampling_weights = resampling_weights/sum(resampling_weights)
-
-resampling = sample(N, N, replace=T, resampling_weights)
-
-a <- particles[, , 1]
-particles[, , 1] <- a[resampling, ]
-
-Z = matrix(1, N)
-internal_particles <- array(0, dim=c(M, D**2, N))
-
-for(t in 2:(T_-pred_horizon)){
-  print(t)
-  
-  internal_filter_output = lattice_internal_filter(N, M, D, mu + rho*(particles[, , t-1] - mu) , S, y[, t])
-  
-  log_lh = internal_filter_output$Log_likelihood
-  Z = exp(log_lh - min(log_lh))
-  Z = Z/sum(Z)
-  
-  internal_particles = internal_filter_output$Particles
-  
-  resampling_ancestor = sample(N, N, replace=T, Z)
-  sampling = sample(M, N, replace=T, matrix(1/M, M))
-  
-  for(n in 1:N){
-    particles[n, , t] <- internal_particles[sampling[n], , resampling_ancestor[n]]
-  }
-}
+#### NSMC with QMC
+particles_QMC <- lattice_filter_QMC(y, N, M, D, T_, mu, rho, S)
 
 for(d in 1:D**2){
   plot(x[d, ])
   lines(x[d, ])
-  polygon(c(1:(T_-1), rev(1:(T_-1))), c(apply(particles[, d, 1:(T_-pred_horizon)], 2, quantile)[2, ], rev(apply(particles[, d, 1:(T_-pred_horizon)], 2, quantile)[4, ])), col=rgb(1,0, 1,0.1), border = NA)
-  lines(apply(particles[, d, 1:(T_-pred_horizon)], 2, quantile)[3, ], col='blue')
+  lines(apply(particles[, d, 1:(T_-pred_horizon)], 2, mean), col='red')
+  lines(apply(particles_QMC[, d, 1:(T_-pred_horizon)], 2, mean), col='green')
 }
 
-
+#for(d in 1:D**2){
+  #plot(x[d, ])
+  #lines(x[d, ])
+  #polygon(c(1:(T_-1), rev(1:(T_-1))), c(apply(particles[, d, 1:(T_-pred_horizon)], 2, quantile)[2, ], rev(apply(particles[, d, 1:(T_-pred_horizon)], 2, quantile)[4, ])), col=rgb(1,0, 1,0.1), border = NA)
+  #lines(apply(particles[, d, 1:(T_-pred_horizon)], 2, quantile)[3, ], col='blue')
+#}
 
 ### Prediction
 
@@ -133,7 +95,6 @@ for(n in 1:N){
 }
 
 x_quantile = apply(pred_particles[ , , 1], 2, quantile)
-
 
 for(d in 1:D**2){
   plot(x[d, ])

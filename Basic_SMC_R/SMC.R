@@ -1,24 +1,26 @@
+library(RSQMC) # Rcpp package
 set.seed(42)
 
 # Parameters
-T = 20
-sigma = 0.5
-M = 200
+T_ = 1000
+sigma_y = 0.5**2
+M = 10
 
 # State-space model
-x = matrix(0, T)
+# latent process is a random walk
+x = matrix(0, T_)
 x[1] = rnorm(1)
-for(i in 2:T){
-  x[i] = rnorm(1,x[i-1])
+for(i in 2:T_){
+  x[i] = rnorm(1, x[i-1])
 }
-y = rnorm(T,x,sigma)
+y = rnorm(T_, x, sigma_y)
 
 # Kernels and other functions
-g <- function(y,x){
-  return(dnorm(y, mean = x, sigma))
+g <- function(y, x, sigma_2){
+  return(dnorm(y, mean = x, sigma_2))
 }
 
-f <- function(x,x_prev){
+f <- function(x, x_prev){
   return(dnorm(x, mean = x_prev))
 }
 
@@ -26,64 +28,79 @@ norm <- function(x){
   return (x/sum(x))
 }
 
-ptm <- proc.time()
-# Filtering initialization
-particles = matrix(0, M, T)
-W = matrix(0, M, T)
-
-particles[,1] = rnorm(M)
-
-W[,1] = g(y[1], particles[,1]) * f(particles[,1], 0)
-
-W[,1] = norm(W[,1])
-
-for(n in 2:T){
-  # Resampling
-  resampling = sample(M, replace = T, prob = W[,n-1])
-
-  # Mutation
-  particles[,n] = rnorm(M, mean = particles[resampling, n-1])
+basic_SMC_R <- function(y, sigma_y, M, T_){
+  # Filtering initialization
+  particles = matrix(0, M, T_)
+  W = matrix(0, M, T_)
   
-  # Weights computation
-  W[,n] = g(y[n], particles[,n])
+  particles[, 1] = rnorm(M)
   
-  # Weights normalization
-  W[,n] = norm(W[,n])
-}
-
-x_pred = matrix(0,T)
-for(i in 1:T){
-  x_pred[i] = weighted.mean(particles[,i], W[,i])
-}
-
-# Backward smoothing/sampling
-backward_particles = matrix(0, M, T)
-
-resampling = sample(M, replace = T, prob = W[,T])
-
-backward_particles[,T] = particles[resampling,T]
-
-# Backward pass
-for(t in (T-1):1){
-    wgts = W[,t]*f(backward_particles[,t+1] ,particles[,t])
+  W[,1] = g(y[1], particles[,1], sigma_y) * f(particles[, 1], 0)
+  
+  W[,1] = norm(W[,1])
+  
+  for(n in 2:T_){
+    # Resampling
+    resampling = sample(M, replace = T, prob = W[,n-1])
+    
+    # Mutation
+    particles[, n] = rnorm(M, mean = particles[resampling, n-1])
+    
+    # Weights computation
+    W[, n] = g(y[n], particles[, n], sigma_y)
+    
+    # Weights normalization
+    W[, n] = norm(W[, n])
+  }
+  
+  x_pred = matrix(0, T_)
+  for(i in 1:T_){
+    x_pred[i] = weighted.mean(particles[, i], W[, i])
+  }
+  
+  # Backward smoothing/sampling
+  backward_particles = matrix(0, M, T_)
+  
+  resampling = sample(M, replace = T, prob = W[, T_])
+  
+  backward_particles[, T_] = particles[resampling, T_]
+  
+  # Backward pass
+  for(t in (T_-1):1){
+    wgts = W[, t]*f(backward_particles[, t+1] ,particles[, t])
     resampling = sample(M, replace = T, prob = wgts)
-    backward_particles[,t] = particles[resampling, t]
+    backward_particles[, t] = particles[resampling, t]
+  }
+  
+  x_smooth = colMeans(backward_particles)
+  return(x_smooth)
 }
 
-x_smooth = colMeans(backward_particles)
+R_execution_time <- function(t){
+  ptm <- proc.time()
+  x_smooth <- basic_SMC_R(y, sigma_y, 32, t)
+  return((proc.time() - ptm)[1])
+}
 
-print(proc.time() - ptm)
+Cpp_execution_time <-function(t){
+  ptm_cpp <- proc.time()
+  x_cpp = SMC(y, sigma_y, 32, t)
+  return((proc.time() - ptm_cpp)[1])
+}
 
-# RCPP equivalent
-ptm_cpp <- proc.time()
-x_cpp = SMC(y, M, T)
-print(proc.time() - ptm_cpp)
+R_elapsed = matrix(0, 500)
+Cpp_elapsed = matrix(0, 500)
+for(t in 20:500){
+  
+  R_elapsed[t] = mean(rep(R_execution_time(t), 50))
+  
+  # RCPP equivalent
+  Cpp_elapsed[t] = mean(rep(Cpp_execution_time(t), 50))
+}
+      
+plot(R_elapsed[20:500], type='l')
+lines(Cpp_elapsed[20:500])
 
 plot(x, col='blue')
-lines(x)
-lines(x_pred, col='red')
-
-#lines(x_cpp, col='black')
-#lines(x_smooth, col='green')
-
-
+lines(x_cpp, col='black')
+lines(x_smooth, col='green')

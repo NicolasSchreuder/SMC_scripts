@@ -1,14 +1,15 @@
 library(RSQMC)
+library(MASS)
 library(mvtnorm)
 source("/Users/Schreuder/Google Drive/ENSAE/2A/Stage2A/RSQMC_scripts/Lattice_Model_Functions.R") 
 
 set.seed(42)
 
 # SMC parameters
-D <- 8 # dimension -> DxD square
+D <- 4 # dimension -> DxD square
 N <- 100 # number of external particles
-M <- 16 # number of internal particles
-T_ = 30 # time
+M <- 64 # number of internal particles
+T_ = 15 # time
 
 # AR(1) parameter
 mu = 2
@@ -75,7 +76,7 @@ for(d in 1:D**2){
   plot(x[d, ])
   lines(x[d, ])
   lines(apply(particles[, d, 1:(T_-pred_horizon)], 2, mean), col='red')
-  lines(apply(particles_QMC[, d, 1:(T_-pred_horizon)], 2, mean), col='green')
+  lines(apply(particles_QMC[, d, 1:(T_-pred_horizon)], 2, mean), col='blue')
 }
 
 #for(d in 1:D**2){

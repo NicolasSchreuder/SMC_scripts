@@ -143,7 +143,7 @@ gaussian_guided_filter <- function(y, sigma_y, D, T_, S, number_of_particles){
   # Backward smoothing/sampling
   backward_particles = array(0, dim=c(number_of_particles, D, T_))
   
-  resampling = sample(number_of_particles, replace = T_, prob = W[, T_])
+  resampling = sample(number_of_particles, replace = T_, prob = resampling_weights)
   
   backward_particles[, , T_] = particles[resampling, , T_]
   
@@ -161,4 +161,56 @@ gaussian_guided_filter <- function(y, sigma_y, D, T_, S, number_of_particles){
   pred <- array(0, dim=c(D, T_))
   pred[, 2:T_] <- apply(particles[, , 2:T_], c(2,3) , mean)
   return(pred)
+}
+
+
+
+# NSMC for the linear gaussian model
+NSMC_linear_gaussian <- function(y, N, M, D, T_, S, sigma_y, QMC){
+  
+  particles <- array(0, dim=c(N, D, T_+1))
+  weights <- array(0, N)
+  log_likelihood <- array(0, N)
+  internal_weights <- array(0, dim=c(T_+1, M, D, N))
+  internal_particles <- array(0, dim=c(T_+1, M, D, N))
+  
+  # External particles initialisation 
+  particles[, , 1] <- mvrnorm(n = N, matrix(0, D), S)
+  
+  for(t in 2:(T_+1)){
+    
+    # The internal filter returns :
+    # - the log-likelihood of the SMC along the coordinates (= weights for resampling) 
+    # - the generated internal particles (needed for backward simulation)
+    # - the associated internal weights (needed for backward simulation)
+    # NB : the particles start at time t=2 and the observations y at t=1 
+    if(QMC){
+      internal_filter_output = internal_filter_with_QMC(N, y[, t-1], M, D, S, 
+                                                        particles[, , t-1], sigma_y)
+    } else {
+      internal_filter_output = internal_filter(N, y[, t-1], M, D, S, 
+                                               particles[, , t-1], sigma_y)
+    }
+    
+    internal_weights[t, , , ] <- internal_filter_output$Weights
+    internal_particles[t, , ,] <- internal_filter_output$Particles
+    log_likelihood <- internal_filter_output$Log_Likelihood
+    
+    # Weights normalisation
+    weights = exp(log_likelihood - max(log_likelihood))
+    sum = sum(weights)
+    weights = weights/sum
+    
+    # Resampling step
+    resampling = sample(N, replace = T, prob = weights)
+    
+    # Backward simulation (parallelised)
+    cl <- makeCluster(3)
+    particles[, , t] <- t(parSapply(cl, 1:N, backward_paralell, resampling=resampling, 
+                                    N=N, M=M, t=t, D=D, weights=weights, particles=particles, 
+                                    internal_particles=internal_particles, 
+                                    internal_weights=internal_weights, S=S))
+    stopCluster(cl)
+  }
+  return(particles[ , , 2:(T_+1)])
 }

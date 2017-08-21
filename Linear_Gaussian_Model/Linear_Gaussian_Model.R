@@ -1,9 +1,10 @@
 library(MASS) # for multivariate Gaussian simulation
 library(RSQMC) # for internal filters
 library(profvis) # R profiler
-library(parallel)
-library(ggplot2)
-source("/Users/Schreuder/Google Drive/ENSAE/2A/Stage2A/bRistol/Example1Functions.R") 
+library(parallel) # parallel computation
+library(ggplot2) # plot
+
+source(file.path(getwd(), "Linear_Gaussian_Model" ,"Linear_Gaussian_Model_Functions.R"))
 
 set.seed(41)
 

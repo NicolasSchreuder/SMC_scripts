@@ -28,15 +28,13 @@ lattice_filter <- function(y, N, M, D, T_, mu, rho, S, QMC=FALSE){
   internal_particles <- array(0, dim=c(M, D**2, N))
   
   for(t in 2:T_){
-    
+
     if(QMC){
       internal_filter_output = lattice_internal_filter_QMC(N, M, D, 
-                                                       mu + rho*(particles[, , t-1] - mu), 
-                                                       S, y[, t])
+                                  mu + rho*(particles[, , t-1] - mu), S, y[, t])
     } else {
       internal_filter_output = lattice_internal_filter(N, M, D, 
-                                                           mu + rho*(particles[, , t-1] - mu), 
-                                                           S, y[, t])
+                                  mu + rho*(particles[, , t-1] - mu), S, y[, t])
     }
     
     log_lh = internal_filter_output$Log_likelihood

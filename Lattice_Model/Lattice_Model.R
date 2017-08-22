@@ -1,7 +1,8 @@
 library(RSQMC)
 library(MASS)
 library(mvtnorm)
-source("/Users/Schreuder/Google Drive/ENSAE/2A/Stage2A/RSQMC_scripts/Lattice_Model_Functions.R") 
+
+source(file.path(getwd(), "Lattice_Model", "Lattice_Model_Functions.R"))
 
 set.seed(42)
 

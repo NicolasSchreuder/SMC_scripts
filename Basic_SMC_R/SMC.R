@@ -1,4 +1,5 @@
 library(RSQMC) # Rcpp package
+library(ggplot2)
 set.seed(42)
 
 # Parameters
@@ -78,13 +79,13 @@ basic_SMC_R <- function(y, sigma_y, M, T_){
 
 R_execution_time <- function(t){
   ptm <- proc.time()
-  x_smooth <- basic_SMC_R(y, sigma_y, 32, t)
+  x_smooth <- basic_SMC_R(y, sigma_y, t, 30)
   return((proc.time() - ptm)[1])
 }
 
 Cpp_execution_time <-function(t){
   ptm_cpp <- proc.time()
-  x_cpp = SMC(y, sigma_y, 32, t)
+  x_cpp = SMC(y, sigma_y, t, 30)
   return((proc.time() - ptm_cpp)[1])
 }
 
@@ -97,10 +98,21 @@ for(t in 20:500){
   # RCPP equivalent
   Cpp_elapsed[t] = mean(rep(Cpp_execution_time(t), 50))
 }
-      
-plot(R_elapsed[20:500], type='l')
-lines(Cpp_elapsed[20:500])
 
-plot(x, col='blue')
-lines(x_cpp, col='black')
-lines(x_smooth, col='green')
+
+df = data.frame(R=R_elapsed[20:500], Cpp=Cpp_elapsed[20:500])
+df$time = 20:500
+
+R_abline = coef(lm(R ~ time, data = df))
+Cpp_abline = coef(lm(Cpp ~ time, data = df))
+
+(ggplot(df) + geom_point(aes(x=time, y=R, color='R')) + 
+  geom_point(aes(x=time, y=Cpp, color='C++')) + 
+  geom_abline(intercept=R_abline[[1]], slope=R_abline[[2]], col='#00BFC4', size=1)+
+  geom_abline(intercept=Cpp_abline[[1]], slope=Cpp_abline[[2]], col='red', size=1)+
+  xlab('Number of particles') + ylab('Execution time') + ylim(0, 0.03))
+
+
+#plot(x, col='blue')
+#lines(x_cpp, col='black')
+#lines(x_smooth, col='green')

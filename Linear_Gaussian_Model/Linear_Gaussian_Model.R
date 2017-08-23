@@ -57,7 +57,7 @@ for(f in 1:nb_filters){
     log_likelihood <- internal_filter_output$Log_Likelihood
   
     # Weights normalization
-    weights = exp(log_likelihood - max(log_likelihood))
+    weights = exp(log_likelihood - min(log_likelihood))
     sum = sum(weights)
     weights = weights/sum
 

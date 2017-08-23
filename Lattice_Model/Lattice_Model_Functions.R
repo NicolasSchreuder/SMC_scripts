@@ -3,9 +3,11 @@ observation_lh <- function(y, x){
   prod <- 1
   for(i in 1:length(y)){
     prod <- prod * dpois(y[i], exp(x[i]))
+    #prod <- prod * dnorm(y[i], x[i], 0.25)
   }
   return(prod)
 }
+
 
 lattice_filter <- function(y, N, M, D, T_, mu, rho, S, QMC=FALSE){
   
@@ -40,7 +42,7 @@ lattice_filter <- function(y, N, M, D, T_, mu, rho, S, QMC=FALSE){
     log_lh = internal_filter_output$Log_likelihood
     Z = exp(log_lh - min(log_lh))
     Z = Z/sum(Z)
-    
+  
     internal_particles = internal_filter_output$Particles
     
     resampling_ancestor = sample(N, N, replace=T, Z)
